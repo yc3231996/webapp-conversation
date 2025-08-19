@@ -51,7 +51,7 @@ const Main: FC<IMainProps> = () => {
 
   useEffect(() => {
     if (APP_INFO?.title)
-      document.title = `${APP_INFO.title} - Powered by Dify`
+      document.title = `${APP_INFO.title}`
   }, [APP_INFO?.title])
 
   // onData change thought (the produce obj). https://github.com/immerjs/immer/issues/576
@@ -356,14 +356,23 @@ const Main: FC<IMainProps> = () => {
     if (currInputs) {
       Object.keys(currInputs).forEach((key) => {
         const value = currInputs[key]
-        if (value.supportFileType)
-          toServerInputs[key] = transformToServerFile(value)
+        const promptVariable = promptConfig?.prompt_variables.find(v => v.key === key)
 
-        else if (value[0]?.supportFileType)
-          toServerInputs[key] = value.map((item: any) => transformToServerFile(item))
-
-        else
+        if (promptVariable?.type === 'file' || promptVariable?.type === 'file-list') {
+          if (value) { // If value is not empty string or null
+            if (Array.isArray(value))
+              toServerInputs[key] = value.map(item => transformToServerFile(item))
+            else
+              toServerInputs[key] = transformToServerFile(value)
+          }
+          else {
+            toServerInputs[key] = null // Send null for empty file inputs
+          }
+        }
+        else {
+          // This handles non-file inputs
           toServerInputs[key] = value
+        }
       })
     }
 
@@ -635,6 +644,39 @@ const Main: FC<IMainProps> = () => {
     notify({ type: 'success', message: t('common.api.success') })
   }
 
+  const handleRenameConversation = async (id: string, name: string) => {
+    await fetch(`/api/conversations/${id}/name`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name }),
+    })
+    const newConversationList = conversationList.map((item) => {
+      if (item.id === id) {
+        return {
+          ...item,
+          name,
+        }
+      }
+      return item
+    })
+    setConversationList(newConversationList)
+    notify({ type: 'success', message: t('common.api.success') })
+  }
+
+  const handleDeleteConversation = async (id: string) => {
+    await fetch(`/api/conversations/${id}`, {
+      method: 'DELETE',
+    })
+    const newConversationList = conversationList.filter(item => item.id !== id)
+    setConversationList(newConversationList)
+    if (currConversationId === id)
+      handleConversationIdChange('-1')
+
+    notify({ type: 'success', message: t('common.api.success') })
+  }
+
   const renderSidebar = () => {
     if (!APP_ID || !APP_INFO || !promptConfig)
       return null
@@ -643,7 +685,9 @@ const Main: FC<IMainProps> = () => {
         list={conversationList}
         onCurrentIdChange={handleConversationIdChange}
         currentId={currConversationId}
-        copyRight={APP_INFO.copyright || APP_INFO.title}
+        copyRight={'Powered by 微辰星图'}
+        onRenameConversation={handleRenameConversation}
+        onDeleteConversation={handleDeleteConversation}
       />
     )
   }

@@ -394,8 +394,14 @@ export const ssePost = (
       if (!/^(2|3)\d{2}$/.test(res.status)) {
         // eslint-disable-next-line no-new
         new Promise(() => {
-          res.json().then((data: any) => {
-            Toast.notify({ type: 'error', message: data.message || 'Server Error' })
+          res.text().then((text: string) => {
+            try {
+              const data = JSON.parse(text)
+              Toast.notify({ type: 'error', message: data.message || 'Server Error' })
+            }
+            catch (e) {
+              Toast.notify({ type: 'error', message: text || 'Server Error' })
+            }
           })
         })
         onError?.('Server Error')
