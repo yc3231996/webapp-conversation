@@ -1,4 +1,19 @@
 import type { IOnCompleted, IOnData, IOnError, IOnFile, IOnMessageEnd, IOnMessageReplace, IOnNodeFinished, IOnNodeStarted, IOnThought, IOnWorkflowFinished, IOnWorkflowStarted } from './base'
+
+export interface ISendRequest {
+  onData?: IOnData
+  onCompleted?: IOnCompleted
+  onFile?: IOnFile
+  onThought?: IOnThought
+  onMessageEnd?: IOnMessageEnd
+  onMessageReplace?: IOnMessageReplace
+  onError?: IOnError
+  getAbortController?: (abortController: AbortController) => void
+  onWorkflowStarted?: IOnWorkflowStarted
+  onWorkflowFinished?: IOnWorkflowFinished
+  onNodeStarted?: IOnNodeStarted
+  onNodeFinished?: IOnNodeFinished
+}
 import { get, post, ssePost } from './base'
 import type { Feedbacktype } from '@/types/app'
 

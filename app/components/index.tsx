@@ -151,8 +151,6 @@ const Main: FC<IMainProps> = () => {
         name: item?.name || '',
         introduction: item?.introduction || '',
         suggested_questions: item?.suggested_questions || [],
-        id: item?.id || '',
-        inputs: item?.inputs || {},
       })
     }
     else {
@@ -465,7 +463,7 @@ const Main: FC<IMainProps> = () => {
 
     setRespondingTrue()
     sendChatMessage(data, {
-      getAbortController: (abortController) => {
+      getAbortController: (abortController: AbortController) => {
         setAbortController(abortController)
       },
       onData: (message: string, isFirstMessage: boolean, { conversationId: newConversationId, messageId, taskId }: any) => {
@@ -518,7 +516,7 @@ const Main: FC<IMainProps> = () => {
         setCurrConversationId(tempNewConversationId, APP_ID, true)
         setRespondingFalse()
       },
-      onFile(file) {
+      onFile(file: any) {
         const lastThought = responseItem.agent_thoughts?.[responseItem.agent_thoughts?.length - 1]
         if (lastThought)
           lastThought.message_files = [...(lastThought as any).message_files, { ...file }]
@@ -530,7 +528,7 @@ const Main: FC<IMainProps> = () => {
           questionItem,
         })
       },
-      onThought(thought) {
+      onThought(thought: any) {
         isAgentMode = true
         const response = responseItem as any
         if (thought.message_id && !hasSetResponseId) {
@@ -566,7 +564,7 @@ const Main: FC<IMainProps> = () => {
           questionItem,
         })
       },
-      onMessageEnd: (messageEnd) => {
+      onMessageEnd: (messageEnd: any) => {
         if (messageEnd.metadata?.annotation_reply) {
           responseItem.id = messageEnd.id
           responseItem.annotation = ({
@@ -598,7 +596,7 @@ const Main: FC<IMainProps> = () => {
           })
         setChatList(newListWithAnswer)
       },
-      onMessageReplace: (messageReplace) => {
+      onMessageReplace: (messageReplace: any) => {
         setChatList(produce(
           getChatList(),
           (draft) => {
@@ -616,7 +614,7 @@ const Main: FC<IMainProps> = () => {
           draft.splice(draft.findIndex(item => item.id === placeholderAnswerId), 1)
         }))
       },
-      onWorkflowStarted: ({ workflow_run_id, task_id }) => {
+      onWorkflowStarted: ({ workflow_run_id, task_id }: any) => {
         // taskIdRef.current = task_id
         responseItem.workflow_run_id = workflow_run_id
         responseItem.workflowProcess = {
@@ -631,7 +629,7 @@ const Main: FC<IMainProps> = () => {
           }
         }))
       },
-      onWorkflowFinished: ({ data }) => {
+      onWorkflowFinished: ({ data }: any) => {
         responseItem.workflowProcess!.status = data.status as WorkflowRunningStatus
         setChatList(produce(getChatList(), (draft) => {
           const currentIndex = draft.findIndex(item => item.id === responseItem.id)
@@ -641,7 +639,7 @@ const Main: FC<IMainProps> = () => {
           }
         }))
       },
-      onNodeStarted: ({ data }) => {
+      onNodeStarted: ({ data }: any) => {
         responseItem.workflowProcess!.tracing!.push(data as any)
         setChatList(produce(getChatList(), (draft) => {
           const currentIndex = draft.findIndex(item => item.id === responseItem.id)
@@ -651,7 +649,7 @@ const Main: FC<IMainProps> = () => {
           }
         }))
       },
-      onNodeFinished: ({ data }) => {
+      onNodeFinished: ({ data }: any) => {
         const currentIndex = responseItem.workflowProcess!.tracing!.findIndex(item => item.node_id === data.node_id)
         responseItem.workflowProcess!.tracing[currentIndex] = data as any
         setChatList(produce(getChatList(), (draft) => {

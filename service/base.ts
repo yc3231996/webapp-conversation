@@ -288,7 +288,7 @@ const baseFetch = (url: string, fetchOptions: any, { needAllResponseContent }: I
           // Error handler
           if (!/^(2|3)\d{2}$/.test(res.status)) {
             try {
-              const bodyJson = res.json()
+              const bodyJson = res.text()
               switch (res.status) {
                 case 401: {
                   Toast.notify({ type: 'error', message: 'Invalid token' })
@@ -297,8 +297,16 @@ const baseFetch = (url: string, fetchOptions: any, { needAllResponseContent }: I
                 default:
                   // eslint-disable-next-line no-new
                   new Promise(() => {
-                    bodyJson.then((data: any) => {
-                      Toast.notify({ type: 'error', message: data.message })
+                    bodyJson.then((text: string) => {
+                      try {
+                        const data = JSON.parse(text)
+                        Toast.notify({ type: 'error', message: data.message || 'Server Error' })
+                      }
+                      catch (e) {
+                        Toast.notify({ type: 'error', message: text || 'Server Error' })
+                      }
+                    }).catch(() => {
+                      Toast.notify({ type: 'error', message: 'Network Error' })
                     })
                   })
               }
@@ -400,8 +408,10 @@ export const ssePost = (
               Toast.notify({ type: 'error', message: data.message || 'Server Error' })
             }
             catch (e) {
-              Toast.notify({ type: 'error', message: text || 'Server Error' })
+              Toast.notify({ type: 'error', message: text || 'Network Error' })
             }
+          }).catch(() => {
+            Toast.notify({ type: 'error', message: 'Network Error' })
           })
         })
         onError?.('Server Error')
