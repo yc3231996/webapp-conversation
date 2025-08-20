@@ -5,8 +5,11 @@ const translation = {
     appUnkonwError: '应用不可用',
   },
   chat: {
-    newChat: '新对话',
+    newChat: '新建会话',
     newChatDefaultName: '新的对话',
+    rename: '重命名',
+    delete: '删除',
+    renameConversation: '输入新名称',
     openingStatementTitle: '对话开场白',
     powerBy: 'Powered by',
     prompt: '提示词',

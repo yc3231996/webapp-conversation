@@ -228,6 +228,20 @@ const Main: FC<IMainProps> = () => {
     return []
   }
 
+  const [conversationPin, setConversationPin] = useState(false)
+  const [conversationHasMore, setConversationHasMore] = useState(true)
+  const [conversationLastId, setConversationLastId] = useState<string | undefined>('')
+  const handleLoadMoreConversations = async () => {
+    if (conversationPin)
+      return
+    setConversationPin(true)
+    const { data: conversations, has_more, limit, last_id } = (await fetchConversations(conversationLastId)) as any
+    setConversationList([...conversationList, ...conversations])
+    setConversationHasMore(has_more)
+    setConversationLastId(last_id)
+    setConversationPin(false)
+  }
+
   // init
   useEffect(() => {
     if (!hasSetAppConfig) {
@@ -238,12 +252,13 @@ const Main: FC<IMainProps> = () => {
       try {
         const [conversationData, appParams] = await Promise.all([fetchConversations(), fetchAppParams()])
         // handle current conversation id
-        const { data: conversations, error } = conversationData as { data: ConversationItem[]; error: string }
+        const { data: conversations, has_more, limit, last_id, error } = conversationData as { data: ConversationItem[]; has_more: boolean; limit: number; last_id: string; error: string }
         if (error) {
           Toast.notify({ type: 'error', message: error })
           throw new Error(error)
-          return
         }
+        setConversationHasMore(has_more)
+        setConversationLastId(last_id)
         const _conversationId = getConversationIdFromStorage(APP_ID)
         const currentConversation = conversations.find(item => item.id === _conversationId)
         const isNotNewConversation = !!currentConversation
@@ -254,13 +269,13 @@ const Main: FC<IMainProps> = () => {
         setNewConversationInfo({
           name: t('app.chat.newChatDefaultName'),
           introduction,
-          suggested_questions
+          suggested_questions,
         })
         if (isNotNewConversation) {
           setExistConversationInfo({
             name: currentConversation.name || t('app.chat.newChatDefaultName'),
             introduction,
-            suggested_questions
+            suggested_questions,
           })
         }
         const prompt_variables = userInputsFormToPromptVariables(user_input_form)
@@ -722,6 +737,8 @@ const Main: FC<IMainProps> = () => {
         copyRight={'Powered by 微辰星图'}
         onRenameConversation={handleRenameConversation}
         onDeleteConversation={handleDeleteConversation}
+        onLoadMore={handleLoadMoreConversations}
+        hasMore={conversationHasMore}
       />
     )
   }
@@ -733,55 +750,66 @@ const Main: FC<IMainProps> = () => {
     return <Loading type='app' />
 
   return (
-    <div className='bg-gray-100'>
-      <Header
-        title={APP_INFO.title}
-        isMobile={isMobile}
-        onShowSideBar={showSidebar}
-        onCreateNewChat={() => handleConversationIdChange('-1')}
-      />
-      <div className="flex rounded-t-2xl bg-white overflow-hidden">
-        {/* sidebar */}
-        {!isMobile && renderSidebar()}
-        {isMobile && isShowSidebar && (
-          <div className='fixed inset-0 z-50'
-            style={{ backgroundColor: 'rgba(35, 56, 118, 0.2)' }}
-            onClick={hideSidebar}
-          >
-            <div className='inline-block' onClick={e => e.stopPropagation()}>
-              {renderSidebar()}
-            </div>
+    <div className='flex h-screen bg-gray-100'>
+      {/* sidebar */}
+      {!isMobile && renderSidebar()}
+      {isMobile && isShowSidebar && (
+        <div className='fixed inset-0 z-50'
+          style={{ backgroundColor: 'rgba(35, 56, 118, 0.2)' }}
+          onClick={hideSidebar}
+        >
+          <div className='inline-block' onClick={e => e.stopPropagation()}>
+            {renderSidebar()}
           </div>
-        )}
-        {/* main */}
-        <div className='flex-grow flex flex-col h-[calc(100vh_-_3rem)] overflow-y-auto'>
-          <ConfigSence
-            conversationName={conversationName}
-            hasSetInputs={hasSetInputs}
-            isPublicVersion={isShowPrompt}
-            siteInfo={APP_INFO}
-            promptConfig={promptConfig}
-            onStartChat={handleStartChat}
-            canEditInputs={canEditInputs}
-            savedInputs={inputs as Record<string, any>}
-            onInputsChange={setInputs}
-          ></ConfigSence>
+        </div>
+      )}
+      {/* main */}
+      <div className='flex-grow flex justify-center'>
+        <div className='flex flex-col h-screen bg-white w-full max-w-4xl'>
+          {/* Header */}
+          <div className='flex-shrink-0'>
+            <ConfigSence
+              conversationName={conversationName}
+              hasSetInputs={hasSetInputs}
+              isPublicVersion={isShowPrompt}
+              siteInfo={APP_INFO}
+              promptConfig={promptConfig}
+              onStartChat={handleStartChat}
+              canEditInputs={canEditInputs}
+              savedInputs={inputs as Record<string, any>}
+              onInputsChange={setInputs}
+            />
+          </div>
 
-          {
-            hasSetInputs && (
-              <div className='relative grow h-[200px] pc:w-[794px] max-w-full mobile:w-full pb-[66px] mx-auto mb-3.5 overflow-hidden'>
-                <div className='h-full overflow-y-auto' ref={chatListDomRef}>
+          {hasSetInputs
+            ? (
+              // Chat area
+              <div className="flex flex-col flex-grow overflow-hidden">
+                {/* Chat Body */}
+                <div className='relative flex-grow overflow-y-auto' ref={chatListDomRef}>
                   <Chat
                     chatList={chatList}
-                    onSend={handleSend}
                     onFeedback={handleFeedback}
                     isResponding={isResponding}
+                    visionConfig={visionConfig}
+                    isHideSendInput // This will hide the input box inside the scrollable area
+                  />
+                </div>
+                {/* Chat Footer (Input) */}
+                <div className='flex-shrink-0 p-4'>
+                  <Chat
+                    chatList={[]} // Pass empty list, so only input is rendered
+                    onSend={handleSend}
                     checkCanSend={checkCanSend}
                     visionConfig={visionConfig}
                   />
                 </div>
-              </div>)
-          }
+              </div>
+            )
+            : (
+              // Placeholder for when chat is not started, to maintain layout
+              <div className="flex flex-col flex-grow overflow-hidden" />
+            )}
         </div>
       </div>
     </div>

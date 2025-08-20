@@ -11,6 +11,8 @@ import appEs from './lang/app.es'
 import appZh from './lang/app.zh'
 import appVi from './lang/app.vi'
 import appJa from './lang/app.ja'
+import loginEn from './lang/login.en'
+import loginZh from './lang/login.zh'
 import toolsEn from './lang/tools.en'
 import toolsZh from './lang/tools.zh'
 import toolsVi from './lang/tools.vi'
@@ -23,6 +25,7 @@ const resources = {
     translation: {
       common: commonEn,
       app: appEn,
+      login: loginEn,
       // tools
       tools: toolsEn,
     },
@@ -37,6 +40,7 @@ const resources = {
     translation: {
       common: commonZh,
       app: appZh,
+      login: loginZh,
       // tools
       tools: toolsZh,
     },
@@ -63,8 +67,8 @@ i18n.use(initReactI18next)
   // init i18next
   // for all options read: https://www.i18next.com/overview/configuration-options
   .init({
-    lng: 'en',
-    fallbackLng: 'en',
+    lng: 'zh-Hans',
+    fallbackLng: 'zh-Hans',
     // debug: true,
     resources,
   })
