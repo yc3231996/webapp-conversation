@@ -297,6 +297,26 @@ const Main: FC<IMainProps> = () => {
     if (!currInputs || !promptConfig?.prompt_variables)
       return true
 
+    let fileUploading = false
+    promptConfig.prompt_variables.forEach((variable) => {
+      if (variable.type === 'file' || variable.type === 'file-list') {
+        const value = currInputs[variable.key]
+        if (Array.isArray(value)) {
+          if (value.some(file => !file.uploadedId))
+            fileUploading = true
+        }
+        else {
+          if (value && !value.uploadedId)
+            fileUploading = true
+        }
+      }
+    })
+
+    if (fileUploading) {
+      logError(t('app.errorMessage.waitForFileUpload'))
+      return false
+    }
+
     const inputLens = Object.values(currInputs).length
     const promptVariablesLens = promptConfig.prompt_variables.length
 
@@ -338,14 +358,7 @@ const Main: FC<IMainProps> = () => {
     setChatList(newListWithAnswer)
   }
 
-  const transformToServerFile = (fileItem: any) => {
-    return {
-      type: 'image',
-      transfer_method: fileItem.transferMethod,
-      url: fileItem.url,
-      upload_file_id: fileItem.id,
-    }
-  }
+
 
   const handleSend = async (message: string, files?: VisionFile[]) => {
     if (isResponding) {
@@ -359,18 +372,23 @@ const Main: FC<IMainProps> = () => {
         const promptVariable = promptConfig?.prompt_variables.find(v => v.key === key)
 
         if (promptVariable?.type === 'file' || promptVariable?.type === 'file-list') {
-          if (value) { // If value is not empty string or null
+          if (value) {
+            const transform = (item: any) => ({
+              type: (promptVariable.allowed_file_types && promptVariable.allowed_file_types[0]) || 'file',
+              transfer_method: item.transferMethod,
+              upload_file_id: item.uploadedId,
+            });
+
             if (Array.isArray(value))
-              toServerInputs[key] = value.map(item => transformToServerFile(item))
+              toServerInputs[key] = value.map(transform);
             else
-              toServerInputs[key] = transformToServerFile(value)
+              toServerInputs[key] = transform(value);
           }
           else {
-            toServerInputs[key] = null // Send null for empty file inputs
+            toServerInputs[key] = null;
           }
         }
         else {
-          // This handles non-file inputs
           toServerInputs[key] = value
         }
       })

@@ -101,7 +101,11 @@ const Welcome: FC<IWelcomeProps> = ({
                 <Select
                   className='w-full'
                   defaultValue={inputs?.[item.key]}
-                  onSelect={(i) => { setInputs({ ...inputs, [item.key]: i.value }) }}
+                  onSelect={(i) => {
+                    const newInputs = { ...inputs, [item.key]: i.value }
+                    setInputs(newInputs)
+                    onInputsChange(newInputs)
+                  }}
                   items={(item.options || []).map(i => ({ name: i, value: i }))}
                   allowSearch={false}
                   bgClassName='bg-gray-50'
@@ -111,7 +115,11 @@ const Welcome: FC<IWelcomeProps> = ({
               <input
                 placeholder={`${item.name}${!item.required ? `(${t('app.variableTable.optional')})` : ''}`}
                 value={inputs?.[item.key] || ''}
-                onChange={(e) => { setInputs({ ...inputs, [item.key]: e.target.value }) }}
+                onChange={(e) => {
+                  const newInputs = { ...inputs, [item.key]: e.target.value }
+                  setInputs(newInputs)
+                  onInputsChange(newInputs)
+                }}
                 className={'w-full flex-grow py-2 pl-3 pr-3 box-border rounded-lg bg-gray-50'}
                 maxLength={item.max_length || DEFAULT_VALUE_MAX_LEN}
               />
@@ -121,7 +129,11 @@ const Welcome: FC<IWelcomeProps> = ({
                 className="w-full h-[104px] flex-grow py-2 pl-3 pr-3 box-border rounded-lg bg-gray-50"
                 placeholder={`${item.name}${!item.required ? `(${t('app.variableTable.optional')})` : ''}`}
                 value={inputs?.[item.key] || ''}
-                onChange={(e) => { setInputs({ ...inputs, [item.key]: e.target.value }) }}
+                onChange={(e) => {
+                  const newInputs = { ...inputs, [item.key]: e.target.value }
+                  setInputs(newInputs)
+                  onInputsChange(newInputs)
+                }}
               />
             )}
             {item.type === 'number' && (
@@ -130,7 +142,11 @@ const Welcome: FC<IWelcomeProps> = ({
                 className="block w-full p-2 text-gray-900 border border-gray-300 rounded-lg bg-gray-50 sm:text-xs focus:ring-blue-500 focus:border-blue-500 "
                 placeholder={`${item.name}${!item.required ? `(${t('appDebug.variableTable.optional')})` : ''}`}
                 value={inputs[item.key]}
-                onChange={(e) => { onInputsChange({ ...inputs, [item.key]: e.target.value }) }}
+                onChange={(e) => {
+                  const newInputs = { ...inputs, [item.key]: e.target.value }
+                  setInputs(newInputs)
+                  onInputsChange(newInputs)
+                }}
               />
             )}
 
@@ -145,9 +161,11 @@ const Welcome: FC<IWelcomeProps> = ({
                     fileUploadConfig: {} as any,
                   }}
                   onChange={(files) => {
-                    setInputs({ ...inputs, [item.key]: files[0] })
+                    const newInputs = { ...inputs, [item.key]: files[0] || null }
+                    setInputs(newInputs)
+                    onInputsChange(newInputs)
                   }}
-                  value={inputs?.[item.key] || []}
+                  value={inputs?.[item.key] ? [inputs?.[item.key]] : []}
                 />
               )
             }
@@ -162,7 +180,9 @@ const Welcome: FC<IWelcomeProps> = ({
                     fileUploadConfig: {} as any,
                   }}
                   onChange={(files) => {
-                    setInputs({ ...inputs, [item.key]: files })
+                    const newInputs = { ...inputs, [item.key]: files }
+                    setInputs(newInputs)
+                    onInputsChange(newInputs)
                   }}
                   value={inputs?.[item.key] || []}
                 />
