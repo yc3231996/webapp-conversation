@@ -119,8 +119,14 @@ const Main: FC<IMainProps> = () => {
           const mergedInputs = { ...getInputs() }
           if (lastMessageInputs) {
             promptConfig?.prompt_variables.forEach((variable) => {
-              if (variable.type !== 'file' && variable.type !== 'file-list')
+              // For non-file types, we trust the backend's state for rehydration.
+              if (variable.type !== 'file' && variable.type !== 'file-list') {
                 mergedInputs[variable.key] = lastMessageInputs[variable.key]
+              }
+              // For file types, we intentionally do nothing here.
+              // This preserves the rich file object that already exists in the frontend state (from getInputs()).
+              // The backend's file representation (e.g., {type: 'image'}) is incomplete for sending new messages.
+              // By not overwriting, we ensure the upload_file_id and other crucial properties are kept.
             })
           }
           setInputs(mergedInputs)
