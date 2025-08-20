@@ -195,13 +195,32 @@ const Welcome: FC<IWelcomeProps> = ({
   }
 
   const canChat = () => {
-    const inputLens = Object.values(inputs).length
-    const promptVariablesLens = promptConfig.prompt_variables.length
-    const emptyInput = inputLens < promptVariablesLens || Object.entries(inputs).filter(([k, v]) => {
-      const isRequired = promptConfig.prompt_variables.find(item => item.key === k)?.required ?? true
-      return isRequired && v === ''
-    }).length > 0
-    if (emptyInput) {
+    const { prompt_variables } = promptConfig
+    const requiredVars = prompt_variables.filter(item => item.required)
+
+    let hasEmptyInput = false
+    if (requiredVars.length > 0) {
+      requiredVars.forEach((item) => {
+        if (hasEmptyInput)
+          return
+
+        const value = inputs[item.key]
+
+        switch (item.type) {
+          case 'file':
+          case 'file-list':
+            if (!value || value.length === 0)
+              hasEmptyInput = true
+            break
+          default:
+            if (!value)
+              hasEmptyInput = true
+            break
+        }
+      })
+    }
+
+    if (hasEmptyInput) {
       logError(t('app.errorMessage.valueOfVarRequired'))
       return false
     }

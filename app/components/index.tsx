@@ -73,11 +73,10 @@ const Main: FC<IMainProps> = () => {
     setCurrConversationId,
     getConversationIdFromStorage,
     isNewConversation,
+    inputs,
+    setInputs,
+    getInputs,
     currConversationInfo,
-    currInputs,
-    newConversationInputs,
-    resetNewConversationInputs,
-    setCurrInputs,
     setNewConversationInfo,
     setExistConversationInfo,
   } = useConversation()
@@ -87,7 +86,7 @@ const Main: FC<IMainProps> = () => {
   const handleStartChat = (inputs: Record<string, any>) => {
     createNewChat()
     setConversationIdChangeBecauseOfNew(true)
-    setCurrInputs(inputs)
+    setInputs(inputs)
     setChatStarted()
     // parse variables in introduction
     setChatList(generateNewChatListWithOpenStatement('', inputs))
@@ -108,53 +107,64 @@ const Main: FC<IMainProps> = () => {
       return
 
     // update inputs of current conversation
-    let notSyncToStateIntroduction = ''
-    let notSyncToStateInputs: Record<string, any> | undefined | null = {}
     if (!isNewConversation) {
-      const item = conversationList.find(item => item.id === currConversationId)
-      notSyncToStateInputs = item?.inputs || {}
-      setCurrInputs(notSyncToStateInputs as any)
-      notSyncToStateIntroduction = item?.introduction || ''
+      const item = conversationList.find(item => item.id === getCurrConversationId())
+      // trigger fetch chat list
+      if (!isResponding) {
+        fetchChatList(getCurrConversationId()).then((res: any) => {
+          const { data } = res
+          const lastMessage = data && data.length > 0 ? data[data.length - 1] : null
+
+          const lastMessageInputs = lastMessage?.inputs || item?.inputs || {}
+          const mergedInputs = { ...getInputs() }
+          if (lastMessageInputs) {
+            promptConfig?.prompt_variables.forEach((variable) => {
+              if (variable.type !== 'file' && variable.type !== 'file-list')
+                mergedInputs[variable.key] = lastMessageInputs[variable.key]
+            })
+          }
+          setInputs(mergedInputs)
+
+          const newChatList: ChatItem[] = generateNewChatListWithOpenStatement(item?.introduction || '', mergedInputs)
+
+          data.forEach((item: any) => {
+            newChatList.push({
+              id: `question-${item.id}`,
+              content: item.query,
+              isAnswer: false,
+              message_files: item.message_files?.filter((file: any) => file.belongs_to === 'user') || [],
+
+            })
+            newChatList.push({
+              id: item.id,
+              content: item.answer,
+              agent_thoughts: addFileInfos(item.agent_thoughts ? sortAgentSorts(item.agent_thoughts) : item.agent_thoughts, item.message_files),
+              feedback: item.feedback,
+              isAnswer: true,
+              message_files: item.message_files?.filter((file: any) => file.belongs_to === 'assistant') || [],
+            })
+          })
+          setChatList(newChatList)
+        })
+      }
       setExistConversationInfo({
         name: item?.name || '',
-        introduction: notSyncToStateIntroduction,
-        suggested_questions: suggestedQuestions,
+        introduction: item?.introduction || '',
+        suggested_questions: item?.suggested_questions || [],
+        id: item?.id || '',
+        inputs: item?.inputs || {},
       })
     }
     else {
-      notSyncToStateInputs = newConversationInputs
-      setCurrInputs(notSyncToStateInputs)
-    }
-
-    // update chat list of current conversation
-    if (!isNewConversation && !conversationIdChangeBecauseOfNew && !isResponding) {
-      fetchChatList(currConversationId).then((res: any) => {
-        const { data } = res
-        const newChatList: ChatItem[] = generateNewChatListWithOpenStatement(notSyncToStateIntroduction, notSyncToStateInputs)
-
-        data.forEach((item: any) => {
-          newChatList.push({
-            id: `question-${item.id}`,
-            content: item.query,
-            isAnswer: false,
-            message_files: item.message_files?.filter((file: any) => file.belongs_to === 'user') || [],
-
-          })
-          newChatList.push({
-            id: item.id,
-            content: item.answer,
-            agent_thoughts: addFileInfos(item.agent_thoughts ? sortAgentSorts(item.agent_thoughts) : item.agent_thoughts, item.message_files),
-            feedback: item.feedback,
-            isAnswer: true,
-            message_files: item.message_files?.filter((file: any) => file.belongs_to === 'assistant') || [],
-          })
-        })
-        setChatList(newChatList)
-      })
-    }
-
-    if (isNewConversation && isChatStarted)
+      // is new conversation
+      const info = {
+        name: t('app.chat.newChatDefaultName'),
+        introduction: conversationIntroduction,
+        suggested_questions: suggestedQuestions,
+      }
+      setNewConversationInfo(info)
       setChatList(generateNewChatListWithOpenStatement())
+    }
   }
   useEffect(handleConversationSwitch, [currConversationId, inited])
 
@@ -192,7 +202,7 @@ const Main: FC<IMainProps> = () => {
       draft.unshift({
         id: '-1',
         name: t('app.chat.newChatDefaultName'),
-        inputs: newConversationInputs,
+        inputs: {},
         introduction: conversationIntroduction,
         suggested_questions: suggestedQuestions,
       })
@@ -202,7 +212,7 @@ const Main: FC<IMainProps> = () => {
   // sometime introduction is not applied to state
   const generateNewChatListWithOpenStatement = (introduction?: string, inputs?: Record<string, any> | null) => {
     let calculatedIntroduction = introduction || conversationIntroduction || ''
-    const calculatedPromptVariables = inputs || currInputs || null
+    const calculatedPromptVariables = inputs || null
     if (calculatedIntroduction && calculatedPromptVariables)
       calculatedIntroduction = replaceVarWithValues(calculatedIntroduction, promptConfig?.prompt_variables || [], calculatedPromptVariables)
 
@@ -291,16 +301,16 @@ const Main: FC<IMainProps> = () => {
   }
 
   const checkCanSend = () => {
-    if (currConversationId !== '-1')
+    if (getCurrConversationId() !== '-1')
       return true
 
-    if (!currInputs || !promptConfig?.prompt_variables)
+    if (!inputs || !promptConfig?.prompt_variables)
       return true
 
     let fileUploading = false
     promptConfig.prompt_variables.forEach((variable) => {
       if (variable.type === 'file' || variable.type === 'file-list') {
-        const value = currInputs[variable.key]
+        const value = inputs[variable.key]
         if (Array.isArray(value)) {
           if (value.some(file => !file.uploadedId))
             fileUploading = true
@@ -317,11 +327,18 @@ const Main: FC<IMainProps> = () => {
       return false
     }
 
-    const inputLens = Object.values(currInputs).length
-    const promptVariablesLens = promptConfig.prompt_variables.length
+    const requiredVars = promptConfig.prompt_variables.filter(item => item.required)
+    let hasEmptyInput = false
+    if (requiredVars.length > 0) {
+      requiredVars.forEach((item) => {
+        if (hasEmptyInput)
+          return
+        if (!inputs[item.key])
+          hasEmptyInput = true
+      })
+    }
 
-    const emptyInput = inputLens < promptVariablesLens || Object.values(currInputs).find(v => !v)
-    if (emptyInput) {
+    if (hasEmptyInput) {
       logError(t('app.errorMessage.valueOfVarRequired'))
       return false
     }
@@ -366,9 +383,9 @@ const Main: FC<IMainProps> = () => {
       return
     }
     const toServerInputs: Record<string, any> = {}
-    if (currInputs) {
-      Object.keys(currInputs).forEach((key) => {
-        const value = currInputs[key]
+    if (inputs) {
+      Object.keys(inputs).forEach((key) => {
+        const value = inputs[key]
         const promptVariable = promptConfig?.prompt_variables.find(v => v.key === key)
 
         if (promptVariable?.type === 'file' || promptVariable?.type === 'file-list') {
@@ -397,7 +414,7 @@ const Main: FC<IMainProps> = () => {
     const data: Record<string, any> = {
       inputs: toServerInputs,
       query: message,
-      conversation_id: isNewConversation ? null : currConversationId,
+      conversation_id: isNewConversation ? null : getCurrConversationId(),
     }
 
     if (visionConfig?.enabled && files && files?.length > 0) {
@@ -495,7 +512,8 @@ const Main: FC<IMainProps> = () => {
           setConversationList(newAllConversations as any)
         }
         setConversationIdChangeBecauseOfNew(false)
-        resetNewConversationInputs()
+        // NOT reset new conversation inputs
+        // setInputs({})
         setChatNotStarted()
         setCurrConversationId(tempNewConversationId, APP_ID, true)
         setRespondingFalse()
@@ -689,7 +707,7 @@ const Main: FC<IMainProps> = () => {
     })
     const newConversationList = conversationList.filter(item => item.id !== id)
     setConversationList(newConversationList)
-    if (currConversationId === id)
+    if (getCurrConversationId() === id)
       handleConversationIdChange('-1')
 
     notify({ type: 'success', message: t('common.api.success') })
@@ -702,7 +720,7 @@ const Main: FC<IMainProps> = () => {
       <Sidebar
         list={conversationList}
         onCurrentIdChange={handleConversationIdChange}
-        currentId={currConversationId}
+        currentId={getCurrConversationId()}
         copyRight={'Powered by 微辰星图'}
         onRenameConversation={handleRenameConversation}
         onDeleteConversation={handleDeleteConversation}
@@ -747,8 +765,8 @@ const Main: FC<IMainProps> = () => {
             promptConfig={promptConfig}
             onStartChat={handleStartChat}
             canEditInputs={canEditInputs}
-            savedInputs={currInputs as Record<string, any>}
-            onInputsChange={setCurrInputs}
+            savedInputs={inputs as Record<string, any>}
+            onInputsChange={setInputs}
           ></ConfigSence>
 
           {

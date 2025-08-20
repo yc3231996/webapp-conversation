@@ -2,42 +2,30 @@ import type { IOnCompleted, IOnData, IOnError, IOnFile, IOnMessageEnd, IOnMessag
 import { get, post, ssePost } from './base'
 import type { Feedbacktype } from '@/types/app'
 
-export const sendChatMessage = async (
-  body: Record<string, any>,
-  {
-    onData,
-    onCompleted,
-    onThought,
-    onFile,
-    onError,
-    getAbortController,
-    onMessageEnd,
-    onMessageReplace,
-    onWorkflowStarted,
-    onNodeStarted,
-    onNodeFinished,
-    onWorkflowFinished,
-  }: {
-    onData: IOnData
-    onCompleted: IOnCompleted
-    onFile: IOnFile
-    onThought: IOnThought
-    onMessageEnd: IOnMessageEnd
-    onMessageReplace: IOnMessageReplace
-    onError: IOnError
-    getAbortController?: (abortController: AbortController) => void
-    onWorkflowStarted: IOnWorkflowStarted
-    onNodeStarted: IOnNodeStarted
-    onNodeFinished: IOnNodeFinished
-    onWorkflowFinished: IOnWorkflowFinished
-  },
-) => {
-  return ssePost('chat-messages', {
-    body: {
-      ...body,
+const parseUserInfo = () => {
+  const userInfo = globalThis.localStorage.getItem('userInfo')
+  if (userInfo)
+    return { user: JSON.parse(userInfo).id }
+
+  return {}
+}
+
+export const sendChatMessage = async (body: Record<string, any>, { onData, onCompleted, onFile, onThought, onMessageEnd, onMessageReplace, onError, getAbortController, onWorkflowStarted, onWorkflowFinished, onNodeStarted, onNodeFinished }: ISendRequest) => {
+  const { inputs, query, conversation_id: conversationId, files } = body
+  const bodyParams = {
+    ...{
+      conversation_id: conversationId,
+      query,
+      inputs,
+      files,
       response_mode: 'streaming',
     },
-  }, { onData, onCompleted, onThought, onFile, onError, getAbortController, onMessageEnd, onMessageReplace, onNodeStarted, onWorkflowStarted, onWorkflowFinished, onNodeFinished })
+    ...parseUserInfo(),
+  }
+
+  return ssePost('chat-messages', {
+    body: bodyParams,
+  }, { onData, onCompleted, onFile, onThought, onMessageEnd, onMessageReplace, onError, getAbortController, onWorkflowStarted, onWorkflowFinished, onNodeStarted, onNodeFinished })
 }
 
 export const fetchConversations = async () => {

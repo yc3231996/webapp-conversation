@@ -1,6 +1,7 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useRef,
 } from 'react'
 import {
@@ -14,6 +15,7 @@ import type {
 type Shape = {
   files: FileEntity[]
   setFiles: (files: FileEntity[]) => void
+  syncFilesFromProps: (files: FileEntity[]) => void
 }
 
 export const createFileStore = (
@@ -25,6 +27,9 @@ export const createFileStore = (
     setFiles: (files) => {
       set({ files })
       onChange?.(files)
+    },
+    syncFilesFromProps: (files: FileEntity[]) => {
+      set({ files })
     },
   }))
 }
@@ -54,10 +59,22 @@ export const FileContextProvider = ({
   value,
   onChange,
 }: FileProviderProps) => {
+  const onChangeRef = useRef(onChange)
+  useEffect(() => {
+    onChangeRef.current = onChange
+  }, [onChange])
+
   const storeRef = useRef<FileStore | undefined>(undefined)
 
-  if (!storeRef.current)
-    storeRef.current = createFileStore(value, onChange)
+  if (!storeRef.current) {
+    storeRef.current = createFileStore(value, (files) => {
+      onChangeRef.current?.(files)
+    })
+  }
+
+  useEffect(() => {
+    storeRef.current?.getState().syncFilesFromProps(value || [])
+  }, [value])
 
   return (
     <FileContext.Provider value={storeRef.current}>

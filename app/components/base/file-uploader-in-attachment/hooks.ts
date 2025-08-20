@@ -180,14 +180,20 @@ export const useFile = (fileConfig: FileUpload) => {
       fileUpload({
         file: uploadingFile.originalFile!,
         onProgressCallback: (progress) => {
-          handleUpdateFile({ ...uploadingFile, progress })
+          const currentFile = fileStore.getState().files.find(file => file.id === fileId)
+          if (currentFile)
+            handleUpdateFile({ ...currentFile, progress })
         },
         onSuccessCallback: (res) => {
-          handleUpdateFile({ ...uploadingFile, uploadedId: res.id, progress: 100 })
+          const currentFile = fileStore.getState().files.find(file => file.id === fileId)
+          if (currentFile)
+            handleUpdateFile({ ...currentFile, uploadedId: res.id, progress: 100 })
         },
         onErrorCallback: () => {
           notify({ type: 'error', message: t('common.fileUploader.uploadFromComputerUploadError') })
-          handleUpdateFile({ ...uploadingFile, progress: -1 })
+          const currentFile = fileStore.getState().files.find(file => file.id === fileId)
+          if (currentFile)
+            handleUpdateFile({ ...currentFile, progress: -1 })
         },
       })
     }
@@ -287,14 +293,20 @@ export const useFile = (fileConfig: FileUpload) => {
         fileUpload({
           file: uploadingFile.originalFile,
           onProgressCallback: (progress) => {
-            handleUpdateFile({ ...uploadingFile, progress })
+            const currentFile = fileStore.getState().files.find(file => file.id === uploadingFile.id)
+            if (currentFile)
+              handleUpdateFile({ ...currentFile, progress })
           },
           onSuccessCallback: (res) => {
-            handleUpdateFile({ ...uploadingFile, uploadedId: res.id, progress: 100 })
+            const currentFile = fileStore.getState().files.find(file => file.id === uploadingFile.id)
+            if (currentFile)
+              handleUpdateFile({ ...currentFile, uploadedId: res.id, progress: 100, transferMethod: TransferMethod.local_file })
           },
           onErrorCallback: () => {
             notify({ type: 'error', message: t('common.fileUploader.uploadFromComputerUploadError') })
-            handleUpdateFile({ ...uploadingFile, progress: -1 })
+            const currentFile = fileStore.getState().files.find(file => file.id === uploadingFile.id)
+            if (currentFile)
+              handleUpdateFile({ ...currentFile, progress: -1 })
           },
         })
       },
