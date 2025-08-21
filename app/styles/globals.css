@@ -127,6 +127,33 @@ a {
   text-fill-color: transparent;
 }
 
+/* A more robust fix for horizontal scrollbar issues */
+.markdown-body, .prose { /* Apply to markdown and any other prose containers */
+  overflow-wrap: break-word;
+  word-break: break-word;
+  word-wrap: break-word; /* Legacy support */
+  -webkit-hyphens: auto;
+  -ms-hyphens: auto;
+  hyphens: auto; /* Helps break long words */
+}
+
+.markdown-body pre, .prose pre {
+  white-space: pre-wrap !important;
+  word-break: break-all !important;
+}
+
+.markdown-body pre code, .prose pre code {
+  white-space: pre-wrap !important;
+  word-break: break-all !important;
+}
+
+.markdown-body table {
+  display: table;
+  width: 100%;
+  table-layout: fixed; /* Prevent table from overflowing its container */
+}
+
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

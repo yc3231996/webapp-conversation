@@ -1036,6 +1036,18 @@
   clip: auto;
 }
 
+/* Final fix for horizontal scrollbar issue */
+.markdown-body pre {
+  white-space: pre-wrap !important; /* Ensure long lines in code blocks wrap */
+  word-break: break-all !important;   /* Forcefully break long words/lines */
+  overflow-x: hidden !important;      /* Hide the internal scrollbar of the pre tag */
+}
+
+.markdown-body pre code {
+  white-space: pre-wrap !important; /* Ensure the code inside also wraps */
+  word-break: break-all !important;
+}
+
 .markdown-body ::-webkit-calendar-picker-indicator {
   filter: invert(50%);
 }

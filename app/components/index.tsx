@@ -771,7 +771,7 @@ const Main: FC<IMainProps> = () => {
       )}
       {/* main */}
       <div className='flex-grow flex justify-center bg-white'>
-        <div className='flex flex-col h-screen w-full max-w-4xl'>
+        <div className='flex flex-col h-screen w-full max-w-6xl'>
           {/* Header */}
           <div className='flex-shrink-0'>
             <ConfigSence
