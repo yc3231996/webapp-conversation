@@ -291,7 +291,8 @@ const baseFetch = (url: string, fetchOptions: any, { needAllResponseContent }: I
               const bodyJson = res.text()
               switch (res.status) {
                 case 401: {
-                  Toast.notify({ type: 'error', message: 'Invalid token' })
+                  // Redirect to login page if unauthorized
+                  window.location.href = '/login'
                   return
                 }
                 default:

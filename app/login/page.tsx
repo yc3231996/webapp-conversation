@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import cn from 'classnames'
@@ -11,6 +11,11 @@ const LoginPage = () => {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,6 +44,11 @@ const LoginPage = () => {
   }
 
   const isFormValid = username.trim() !== '' && password.trim() !== ''
+
+  if (!isClient) {
+    // Render nothing or a loading spinner on the server to avoid hydration mismatch
+    return null
+  }
 
   return (
     <div className="flex h-screen bg-gray-50">

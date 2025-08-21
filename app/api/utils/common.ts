@@ -1,15 +1,15 @@
-import { type NextRequest } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { ChatClient } from 'dify-client'
 import { jwtVerify } from 'jose'
 import { API_KEY, API_URL, APP_ID } from '@/config'
 
-const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'your-secret-key');
+const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'your-secret-key')
 
 export const getInfo = async (request: NextRequest) => {
   const session = request.cookies.get('session')?.value
 
   if (!session)
-    throw new Error('Unauthorized')
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
 
   try {
     const { payload } = await jwtVerify(session, secret)
@@ -19,7 +19,7 @@ export const getInfo = async (request: NextRequest) => {
     }
   }
   catch (err) {
-    throw new Error('Unauthorized')
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
   }
 }
 
