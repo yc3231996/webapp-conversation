@@ -29,7 +29,9 @@ export async function POST(request: Request) {
 
     cookies().set('session', jwt, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      // 临时注释掉secure设置，方便HTTP测试
+      // secure: process.env.NODE_ENV === 'production',
+      secure: false,
       maxAge: 60 * 60, // 1 hour
       path: '/',
     })
