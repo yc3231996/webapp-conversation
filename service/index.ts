@@ -19,8 +19,13 @@ import type { Feedbacktype } from '@/types/app'
 
 const parseUserInfo = () => {
   const userInfo = globalThis.localStorage.getItem('userInfo')
-  if (userInfo)
-    return { user: JSON.parse(userInfo).id }
+  if (userInfo) {
+    // 使用与后端API相同的user格式: user_${APP_ID}:${username}
+    const parsedUserInfo = JSON.parse(userInfo)
+    const { APP_ID } = require('@/config')
+    const user = `user_${APP_ID}:${parsedUserInfo.username}`
+    return { user }
+  }
 
   return {}
 }
@@ -43,8 +48,20 @@ export const sendChatMessage = async (body: Record<string, any>, { onData, onCom
   }, { onData, onCompleted, onFile, onThought, onMessageEnd, onMessageReplace, onError, getAbortController, onWorkflowStarted, onWorkflowFinished, onNodeStarted, onNodeFinished })
 }
 
-export const fetchConversations = async (firstId = '') => {
-  return get('conversations', { params: { limit: 20, first_id: firstId } })
+// 每页加载的对话数量常量
+const CONVERSATIONS_PER_PAGE = 20
+
+export const fetchConversations = async (lastId = '', limit = CONVERSATIONS_PER_PAGE) => {
+  const userInfo = parseUserInfo()
+  const params: any = { limit, ...userInfo }
+  
+  // 只有当lastId不为空且不是空字符串时，才添加last_id参数
+  if (lastId && lastId !== '') {
+    params.last_id = lastId
+  }
+  
+  
+  return get('conversations', { params })
 }
 
 export const fetchChatList = async (conversationId: string) => {

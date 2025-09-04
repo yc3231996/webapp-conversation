@@ -10,6 +10,8 @@ const translation = {
     rename: 'Rename',
     delete: 'Delete',
     renameConversation: 'Enter new name',
+    loadMore: 'Load More',
+    loadingMore: 'Loading more...',
     openingStatementTitle: 'Opening statement',
     powerBy: 'Powered by',
     prompt: 'Prompt',

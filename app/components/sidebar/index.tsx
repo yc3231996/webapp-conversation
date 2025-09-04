@@ -27,6 +27,7 @@ export type ISidebarProps = {
   onDeleteConversation: (id: string) => void
   onLoadMore: () => void
   hasMore: boolean
+  isLoading?: boolean
 }
 
 const Sidebar: FC<ISidebarProps> = ({
@@ -38,28 +39,24 @@ const Sidebar: FC<ISidebarProps> = ({
   onDeleteConversation,
   onLoadMore,
   hasMore,
+  isLoading = false,
 }) => {
   const { t } = useTranslation()
   const sentinelRef = useRef<HTMLDivElement>(null)
+  const intersectionTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const lastClickTimeRef = useRef<number>(0)
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore)
-          onLoadMore()
-      },
-      { threshold: 1.0 },
-    )
-
-    const sentinel = sentinelRef.current
-    if (sentinel)
-      observer.observe(sentinel)
-
-    return () => {
-      if (sentinel)
-        observer.unobserve(sentinel)
+  const handleLoadMoreClick = () => {
+    const now = Date.now()
+    // 防止500ms内重复点击
+    if (now - lastClickTimeRef.current < 500) {
+      return
     }
-  }, [hasMore, onLoadMore])
+    lastClickTimeRef.current = now
+    onLoadMore()
+  }
+
+  // NOTE: Auto-trigger with IntersectionObserver is disabled - only manual clicking allowed
 
   const handleRename = (id: string) => {
     const newName = prompt(t('app.chat.renameConversation') as string)
@@ -121,7 +118,28 @@ const Sidebar: FC<ISidebarProps> = ({
             </div>
           )
         })}
-        {hasMore && <div ref={sentinelRef}><Loading /></div>}
+        {hasMore && (
+          <div className="py-3 px-2">
+            <button
+              onClick={handleLoadMoreClick}
+              disabled={isLoading}
+              className={`w-full py-2 px-4 text-sm rounded-md transition-colors duration-200 ${
+                isLoading
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-gray-50 hover:bg-gray-100 text-gray-600 hover:text-gray-800 cursor-pointer'
+              }`}
+            >
+              {isLoading ? (
+                <div className="flex items-center justify-center">
+                  <Loading />
+                  <span className="ml-2">{t('app.chat.loadingMore')}</span>
+                </div>
+              ) : (
+                t('app.chat.loadMore', { count: 20 })
+              )}
+            </button>
+          </div>
+        )}
       </nav>
       <div className='p-4'>
         <UserPanel />

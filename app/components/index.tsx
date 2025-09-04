@@ -238,15 +238,62 @@ const Main: FC<IMainProps> = () => {
   const [conversationHasMore, setConversationHasMore] = useState(true)
   const [conversationLastId, setConversationLastId] = useState<string | undefined>('')
   const handleLoadMoreConversations = async () => {
-    if (conversationPin)
+    if (conversationPin || !conversationHasMore) {
       return
+    }
+    
     setConversationPin(true)
-    const { data: conversations, has_more, limit, last_id } = (await fetchConversations(conversationLastId)) as any
-    setConversationList([...conversationList, ...conversations])
-    setConversationHasMore(has_more)
-    setConversationLastId(last_id)
-    setConversationPin(false)
+    try {
+      const response = (await fetchConversations(conversationLastId)) as any
+      
+      const { data: newConversations, has_more, last_id } = response
+      
+      if (!newConversations || newConversations.length === 0) {
+        setConversationHasMore(false)
+        setConversationPin(false)
+        return
+      }
+      
+      // 避免重复添加：检查新数据是否与现有数据重叠
+      const existingIds = new Set(conversationList.map(conv => conv.id))
+      const filteredNewConversations = newConversations.filter((conv: any) => !existingIds.has(conv.id))
+      
+      // 如果过滤后没有新数据，但原始数据不为空，说明返回的都是重复数据
+      // 这种情况下我们不应该停止加载，而是继续尝试下一页
+      if (filteredNewConversations.length === 0 && newConversations.length > 0) {
+        if (last_id) {
+          setConversationLastId(last_id)
+        }
+      }
+      
+      // 只添加非重复的会话记录到列表末尾
+      if (filteredNewConversations.length > 0) {
+        console.log('📝 Before append - Current list length:', conversationList.length)
+        console.log('📝 Adding new conversations:', filteredNewConversations.map(c => ({ id: c.id, name: c.name })))
+        
+        const updatedList = [...conversationList, ...filteredNewConversations]
+        console.log('📝 After append - New list length:', updatedList.length)
+        console.log('📝 Last few items in updated list:', updatedList.slice(-3).map(c => ({ id: c.id, name: c.name })))
+        
+        setConversationList(updatedList)
+        
+        // 更新last_id应该是新列表中最后一个会话的ID
+        const realLastId = updatedList[updatedList.length - 1]?.id
+        setConversationLastId(realLastId)
+      }
+      
+      setConversationHasMore(has_more)
+      
+      if (filteredNewConversations.length === 0 && last_id) {
+        setConversationLastId(last_id)
+      }
+    } catch (error) {
+      console.error('Failed to load more conversations:', error)
+    } finally {
+      setConversationPin(false)
+    }
   }
+
 
   // init
   useEffect(() => {
@@ -264,7 +311,10 @@ const Main: FC<IMainProps> = () => {
           throw new Error(error)
         }
         setConversationHasMore(has_more)
-        setConversationLastId(last_id)
+        // 初始化时，last_id应该是当前会话列表中最后一个会话的ID
+        const initialLastId = conversations.length > 0 ? conversations[conversations.length - 1].id : last_id
+        setConversationLastId(initialLastId)
+        console.log('Initial conversations loaded:', conversations.length, 'Initial lastId:', initialLastId)
         const _conversationId = getConversationIdFromStorage(APP_ID)
         const currentConversation = conversations.find(item => item.id === _conversationId)
         const isNotNewConversation = !!currentConversation
@@ -745,6 +795,7 @@ const Main: FC<IMainProps> = () => {
         onDeleteConversation={handleDeleteConversation}
         onLoadMore={handleLoadMoreConversations}
         hasMore={conversationHasMore}
+        isLoading={conversationPin}
       />
     )
   }

@@ -10,6 +10,8 @@ const translation = {
     rename: '重命名',
     delete: '删除',
     renameConversation: '输入新名称',
+    loadMore: '加载更多',
+    loadingMore: '加载更多中...',
     openingStatementTitle: '对话开场白',
     powerBy: 'Powered by',
     prompt: '提示词',
